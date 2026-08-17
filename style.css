@@ -1254,3 +1254,103 @@ main {
         page-break-after: always;
     }
 }
+
+/* Auth / Login Page styling */
+.hidden {
+    display: none !important;
+}
+
+#login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--bg-main);
+    padding: 20px;
+    background: radial-gradient(circle at top left, var(--bg-accent) 0%, var(--bg-main) 100%);
+}
+
+.login-card {
+    background-color: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border-top: 6px solid var(--primary);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    width: 100%;
+    max-width: 485px;
+    padding: 36px;
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.login-logo-icon {
+    font-size: 48px;
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+
+.login-header h2 {
+    font-size: 20px;
+    color: var(--primary-dark);
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.login-header p {
+    font-size: 12px;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.login-tabs {
+    display: flex;
+    gap: 8px;
+    background-color: var(--bg-accent);
+    padding: 6px;
+    border-radius: var(--radius-md);
+    margin-bottom: 24px;
+}
+
+.login-tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    padding: 10px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-light);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.login-tab-btn:hover {
+    color: var(--primary);
+}
+
+.login-tab-btn.active {
+    background-color: white;
+    color: var(--primary-dark);
+    box-shadow: var(--shadow-sm);
+}
+
+.login-form-body {
+    display: none;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.login-form-body.active {
+    display: block;
+}

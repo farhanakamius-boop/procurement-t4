@@ -16,28 +16,83 @@
 </head>
 <body>
 
-    <!-- Header Section -->
-    <header>
-        <div class="logo-container">
-            <i class="fas fa-graduation-cap logo-icon"></i>
-            <div class="header-title">
-                <h1>SLK30183 PENGURUSAN PEROLEHAN DAN SUMBER</h1>
-                <p>Kolej Komuniti Papar • Unit Sijil Perkhidmatan Logistik</p>
+    <!-- Portal Log Masuk -->
+    <div id="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <i class="fas fa-graduation-cap login-logo-icon"></i>
+                <h2>SLK30183 PENGURUSAN PEROLEHAN</h2>
+                <p>Platform Pembelajaran Digital • Kolej Komuniti Papar</p>
+            </div>
+            
+            <div class="login-tabs">
+                <button class="login-tab-btn active" id="login-tab-student" onclick="switchLoginTab('student')">
+                    <i class="fas fa-user-graduate"></i> Portal Pelajar
+                </button>
+                <button class="login-tab-btn" id="login-tab-lecturer" onclick="switchLoginTab('lecturer')">
+                    <i class="fas fa-user-tie"></i> Portal Pensyarah
+                </button>
+            </div>
+            
+            <div class="login-form-body active" id="student-login-form">
+                <div class="form-group">
+                    <label for="student-name-input"><i class="fas fa-user"></i> Nama Penuh Pelajar</label>
+                    <input type="text" id="student-name-input" class="form-input" placeholder="Masukkan nama penuh anda...">
+                </div>
+                <div class="form-group">
+                    <label for="student-id-input"><i class="fas fa-id-card"></i> No. Pendaftaran / Pelajar</label>
+                    <input type="text" id="student-id-input" class="form-input" placeholder="Contoh: SPL-2026-0042...">
+                </div>
+                <button class="btn btn-primary btn-block" style="margin-top: 10px;" onclick="handleStudentLogin()">
+                    <i class="fas fa-sign-in-alt"></i> Log Masuk Pelajar
+                </button>
+            </div>
+            
+            <div class="login-form-body" id="lecturer-login-form">
+                <div class="form-group">
+                    <label for="lecturer-password-input"><i class="fas fa-lock"></i> Kata Laluan Pensyarah</label>
+                    <input type="password" id="lecturer-password-input" class="form-input" placeholder="Masukkan kata laluan...">
+                </div>
+                <button class="btn btn-primary btn-block" style="margin-top: 10px;" onclick="handleLecturerLogin()">
+                    <i class="fas fa-sign-in-alt"></i> Log Masuk Pensyarah
+                </button>
+                <p style="font-size:11px; color:var(--text-light); text-align:center; margin-top:12px;">
+                    Kata laluan lalai: <strong>pensyarah123</strong>
+                </p>
             </div>
         </div>
-        
-        <!-- User Quick Progress Badge -->
-        <div class="user-progress-badge">
-            <i class="fas fa-user-circle" style="font-size: 24px; color: var(--accent);"></i>
-            <div class="user-progress-info">
-                <div class="user-name" id="badge-student-name">Ahmad Faiz bin Roslan</div>
-                <div class="user-percentage">Kemajuan: <span class="overall-progress-pct">0%</span></div>
+    </div>
+
+    <!-- Bekas Aplikasi (Tersembunyi sebelum log masuk) -->
+    <div id="app-container" class="hidden">
+
+        <!-- Header Section -->
+        <header>
+            <div class="logo-container">
+                <i class="fas fa-graduation-cap logo-icon"></i>
+                <div class="header-title">
+                    <h1>SLK30183 PENGURUSAN PEROLEHAN DAN SUMBER</h1>
+                    <p>Kolej Komuniti Papar • Unit Sijil Perkhidmatan Logistik</p>
+                </div>
             </div>
-            <div class="progress-bar-mini">
-                <div class="progress-fill-mini"></div>
+            
+            <!-- User Quick Progress Badge & Logout -->
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="user-progress-badge" id="header-progress-badge">
+                    <i class="fas fa-user-circle" style="font-size: 24px; color: var(--accent);"></i>
+                    <div class="user-progress-info">
+                        <div class="user-name" id="badge-student-name">Ahmad Faiz bin Roslan</div>
+                        <div class="user-percentage">Kemajuan: <span class="overall-progress-pct">0%</span></div>
+                    </div>
+                    <div class="progress-bar-mini">
+                        <div class="progress-fill-mini"></div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="handleLogout()" style="padding: 10px 16px; font-size:13px; background-color:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); color:white;">
+                    <i class="fas fa-sign-out-alt"></i> Keluar
+                </button>
             </div>
-        </div>
-    </header>
+        </header>
 
     <!-- Navigation Tabs -->
     <nav class="nav-tabs">
@@ -113,10 +168,10 @@
                 <!-- Student Profile Card (Right Column) -->
                 <div>
                     <div class="card student-profile-card">
-                        <div class="avatar-circle">AF</div>
+                        <div class="avatar-circle" id="profile-avatar">AF</div>
                         <div class="profile-meta">
-                            <h3 style="color: var(--primary-dark); font-size: 18px;">Ahmad Faiz bin Roslan</h3>
-                            <p style="font-size: 12px; color: var(--text-light);">No. Pelajar: SPL-2026-0042</p>
+                            <h3 style="color: var(--primary-dark); font-size: 18px;" id="profile-student-name">Ahmad Faiz bin Roslan</h3>
+                            <p style="font-size: 12px; color: var(--text-light);" id="profile-student-id">No. Pelajar: SPL-2026-0042</p>
                             <span class="profile-role">Pelajar Logistik</span>
                         </div>
 
@@ -893,7 +948,7 @@
                 Tutup
             </button>
         </div>
-    </div>
+    </div> <!-- Tamat Bekas Aplikasi -->
 
     <!-- Toast Notification Container -->
     <div class="alert-toast" id="toast">

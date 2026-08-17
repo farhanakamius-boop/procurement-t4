@@ -12,13 +12,35 @@ let studentProgress = {
     game2Report: null
 };
 
+// Satu kali reset automatik untuk membersihkan kemajuan terdahulu
+if (!localStorage.getItem("procurement_reset_done")) {
+    localStorage.removeItem("procurement_student_progress");
+    localStorage.setItem("procurement_reset_done", "true");
+}
+
+// // Auth State variables
+let userRole = "guest"; // "guest" | "student" | "lecturer"
+let studentId = "";
+
 // Mock Students Database for Lecturer Panel
-let mockStudents = [
-    { id: "S001", name: "Siti Aminah binti Kassim", notesRead: ['s4-1', 's4-2', 's4-3', 's4-4', 's4-5'], game1Completed: true, game1Score: 100, game2Completed: true, game2Score: 100, quizCompleted: true, quizScore: 100 },
-    { id: "S002", name: "Darren Anak John", notesRead: ['s4-1', 's4-2'], game1Completed: true, game1Score: 80, game2Completed: false, game2Score: 0, quizCompleted: false, quizScore: 0 },
-    { id: "S003", name: "Tan Wei Shen", notesRead: ['s4-1', 's4-2', 's4-3', 's4-4', 's4-5'], game1Completed: true, game1Score: 100, game2Completed: true, game2Score: 85, quizCompleted: true, quizScore: 75 },
-    { id: "S004", name: "Nurul Izzah binti Hamzah", notesRead: [], game1Completed: false, game1Score: 0, game2Completed: false, game2Score: 0, quizCompleted: false, quizScore: 0 }
-];
+let mockStudents = [];
+
+function loadMockStudents() {
+    const saved = localStorage.getItem("procurement_lecturer_students");
+    if (saved) {
+        try {
+            mockStudents = JSON.parse(saved);
+        } catch (e) {
+            console.error("Error loading mock students", e);
+        }
+    } else {
+        mockStudents = [];
+    }
+}
+
+function saveMockStudents() {
+    localStorage.setItem("procurement_lecturer_students", JSON.stringify(mockStudents));
+}
 
 // Active tab and navigation states
 let currentTab = "utama";
@@ -26,6 +48,7 @@ let activeNoteSection = "s4-1";
 
 // DOM Loaded Event
 document.addEventListener("DOMContentLoaded", () => {
+    loadMockStudents();
     initProgress();
     setupNavigation();
     setupNoteInteractivity();
@@ -33,7 +56,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setupGame2();
     setupQuiz();
     setupLecturerPanel();
-    updateUI();
 });
 
 // Toast Notification Utility
@@ -49,31 +71,73 @@ function showToast(message, type = "success") {
 
 // 1. Progress Management
 function initProgress() {
-    const saved = localStorage.getItem("procurement_student_progress");
-    if (saved) {
-        try {
-            studentProgress = JSON.parse(saved);
-        } catch (e) {
-            console.error("Error parsing progress", e);
+    const sessionRole = sessionStorage.getItem("user_role");
+    
+    if (sessionRole === "student") {
+        userRole = "student";
+        const name = sessionStorage.getItem("student_name");
+        const id = sessionStorage.getItem("student_id");
+        studentId = id;
+        
+        const savedProgressKey = `procurement_progress_${name.toLowerCase().replace(/\s+/g, '_')}`;
+        const saved = localStorage.getItem(savedProgressKey);
+        if (saved) {
+            try {
+                studentProgress = JSON.parse(saved);
+            } catch (e) {
+                console.error("Error parsing progress", e);
+            }
+        } else {
+            studentProgress.name = name;
+            studentProgress.id = id;
         }
+        
+        document.getElementById("badge-student-name").textContent = name;
+        document.getElementById("header-progress-badge").style.display = "flex";
+        
+        setupRoleUI("student");
+        
+        document.getElementById("login-container").classList.add("hidden");
+        document.getElementById("app-container").classList.remove("hidden");
+        
+        switchTab("utama");
+        updateUI();
+    } else if (sessionRole === "lecturer") {
+        userRole = "lecturer";
+        
+        document.getElementById("header-progress-badge").style.display = "none";
+        
+        setupRoleUI("lecturer");
+        
+        document.getElementById("login-container").classList.add("hidden");
+        document.getElementById("app-container").classList.remove("hidden");
+        
+        switchTab("pensyarah");
+        updateLecturerTable();
+        updateLecturerCharts();
     } else {
-        saveProgress();
+        document.getElementById("app-container").classList.add("hidden");
+        document.getElementById("login-container").classList.remove("hidden");
     }
 }
 
 function saveProgress() {
+    const activeKey = localStorage.getItem("procurement_active_student_key") || "procurement_student_progress";
+    localStorage.setItem(activeKey, JSON.stringify(studentProgress));
     localStorage.setItem("procurement_student_progress", JSON.stringify(studentProgress));
+    
     updateUI();
-    // Also sync the active student's progress to the mock database for lecturer visualization
     syncActiveStudentToMock();
 }
 
 function syncActiveStudentToMock() {
+    if (userRole !== "student") return;
+    
     const totalProg = calculateOverallProgress(studentProgress);
     const existingIdx = mockStudents.findIndex(s => s.name === studentProgress.name);
     
     const studentData = {
-        id: "ACTIVE",
+        id: studentProgress.id || studentId || "ACTIVE",
         name: studentProgress.name,
         notesRead: studentProgress.notesRead,
         game1Completed: studentProgress.game1Completed,
@@ -81,7 +145,9 @@ function syncActiveStudentToMock() {
         game2Completed: studentProgress.game2Completed,
         game2Score: studentProgress.game2Score,
         quizCompleted: studentProgress.quizCompleted,
-        quizScore: studentProgress.quizScore
+        quizScore: studentProgress.quizScore,
+        quizAnswers: studentProgress.quizAnswers,
+        game2Report: studentProgress.game2Report
     };
 
     if (existingIdx !== -1) {
@@ -89,6 +155,8 @@ function syncActiveStudentToMock() {
     } else {
         mockStudents.unshift(studentData);
     }
+    
+    saveMockStudents();
     
     if (typeof updateLecturerTable === "function") {
         updateLecturerTable();
@@ -157,6 +225,16 @@ function updateUI() {
     document.getElementById("profile-notes").textContent = `${studentProgress.notesRead.length}/5`;
     document.getElementById("profile-games").textContent = `${(studentProgress.game1Completed ? 1 : 0) + (studentProgress.game2Completed ? 1 : 0)}/2`;
     document.getElementById("profile-quiz").textContent = studentProgress.quizCompleted ? `${studentProgress.quizScore}%` : "N/A";
+
+    // Dynamic Profile Name, ID and Avatar initials
+    if (studentProgress.name) {
+        document.getElementById("profile-student-name").textContent = studentProgress.name;
+        const initials = studentProgress.name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+        document.getElementById("profile-avatar").textContent = initials;
+    }
+    if (studentProgress.id) {
+        document.getElementById("profile-student-id").textContent = `No. Pelajar: ${studentProgress.id}`;
+    }
 }
 
 // 2. Navigation Control
@@ -1467,4 +1545,150 @@ function downloadNotesPDF() {
         printWindow.close();
         showToast("Fail PDF telah dijana!", "success");
     };
+}
+
+// 9. Portal Log Masuk & Separasi Peranan
+function switchLoginTab(role) {
+    document.querySelectorAll(".login-tab-btn").forEach(btn => btn.classList.remove("active"));
+    document.querySelectorAll(".login-form-body").forEach(form => form.classList.remove("active"));
+    
+    if (role === "student") {
+        document.getElementById("login-tab-student").classList.add("active");
+        document.getElementById("student-login-form").classList.add("active");
+    } else {
+        document.getElementById("login-tab-lecturer").classList.add("active");
+        document.getElementById("lecturer-login-form").classList.add("active");
+    }
+}
+
+function handleStudentLogin() {
+    const nameInput = document.getElementById("student-name-input").value.trim();
+    const idInput = document.getElementById("student-id-input").value.trim();
+    
+    if (!nameInput || !idInput) {
+        showToast("Sila masukkan Nama Penuh dan No. Pendaftaran anda!", "error");
+        return;
+    }
+    
+    userRole = "student";
+    studentId = idInput;
+    
+    // Set studentProgress name and id
+    studentProgress.name = nameInput;
+    studentProgress.id = idInput;
+    
+    // Check if progress already exists in localStorage for this student name
+    const savedProgressKey = `procurement_progress_${nameInput.toLowerCase().replace(/\s+/g, '_')}`;
+    const saved = localStorage.getItem(savedProgressKey);
+    if (saved) {
+        try {
+            studentProgress = JSON.parse(saved);
+        } catch (e) {
+            console.error("Error parsing progress", e);
+        }
+    } else {
+        // Reset progress for new student session
+        studentProgress.notesRead = [];
+        studentProgress.game1Completed = false;
+        studentProgress.game1Score = 0;
+        studentProgress.game2Completed = false;
+        studentProgress.game2Score = 0;
+        studentProgress.quizCompleted = false;
+        studentProgress.quizScore = 0;
+        studentProgress.quizAnswers = null;
+        studentProgress.game2Report = null;
+    }
+    
+    // Save current active student progress
+    localStorage.setItem("procurement_active_student_key", savedProgressKey);
+    saveProgress();
+    
+    // Save session role
+    sessionStorage.setItem("user_role", "student");
+    sessionStorage.setItem("student_name", nameInput);
+    sessionStorage.setItem("student_id", idInput);
+    
+    // Update Badge & UI
+    document.getElementById("badge-student-name").textContent = nameInput;
+    document.getElementById("header-progress-badge").style.display = "flex";
+    
+    // Update UI elements
+    updateUI();
+    
+    // Setup tabs for student
+    setupRoleUI("student");
+    
+    // Transition views
+    document.getElementById("login-container").classList.add("hidden");
+    document.getElementById("app-container").classList.remove("hidden");
+    
+    showToast(`Selamat datang, ${nameInput}!`, "success");
+    switchTab("utama");
+}
+
+function handleLecturerLogin() {
+    const passwordInput = document.getElementById("lecturer-password-input").value;
+    
+    if (passwordInput === "pensyarah123") {
+        userRole = "lecturer";
+        
+        sessionStorage.setItem("user_role", "lecturer");
+        
+        // Hide badge in header since lecturer has no personal progress
+        document.getElementById("header-progress-badge").style.display = "none";
+        
+        // Setup tabs for lecturer
+        setupRoleUI("lecturer");
+        
+        // Transition views
+        document.getElementById("login-container").classList.add("hidden");
+        document.getElementById("app-container").classList.remove("hidden");
+        
+        showToast("Log masuk pensyarah berjaya!", "success");
+        
+        // Go straight to lecturer tab
+        switchTab("pensyarah");
+        
+        // Load table & charts
+        updateLecturerTable();
+        updateLecturerCharts();
+    } else {
+        showToast("Kata laluan salah! Sila cuba lagi.", "error");
+    }
+}
+
+function setupRoleUI(role) {
+    const allTabs = document.querySelectorAll(".nav-tabs .tab-btn");
+    allTabs.forEach(tab => {
+        const tabName = tab.getAttribute("data-tab");
+        if (role === "student") {
+            if (tabName === "pensyarah") {
+                tab.style.display = "none";
+            } else {
+                tab.style.display = "inline-flex";
+            }
+        } else if (role === "lecturer") {
+            if (tabName === "pensyarah") {
+                tab.style.display = "inline-flex";
+            } else {
+                tab.style.display = "none";
+            }
+        }
+    });
+}
+
+function handleLogout() {
+    sessionStorage.clear();
+    userRole = "guest";
+    
+    // Reset login inputs
+    document.getElementById("student-name-input").value = "";
+    document.getElementById("student-id-input").value = "";
+    document.getElementById("lecturer-password-input").value = "";
+    
+    // Transition views
+    document.getElementById("app-container").classList.add("hidden");
+    document.getElementById("login-container").classList.remove("hidden");
+    
+    showToast("Anda telah berjaya log keluar.", "info");
 }
